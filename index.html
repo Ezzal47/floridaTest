@@ -258,11 +258,20 @@ function renderQ(){
   document.getElementById('q-cat-lbl').textContent=CAT_LABELS[q.cat]||q.cat;
   document.getElementById('q-en').textContent=q.en;
   document.getElementById('q-it').textContent=q.it;
+  // Shuffle options and remap correct index
+  if(!q._shuffled){
+    const indices=[0,1,2,3].slice(0,q.options.length);
+    for(let i=indices.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[indices[i],indices[j]]=[indices[j],indices[i]];}
+    q._shuffledOptions=indices.map(i=>q.options[i]);
+    q._shuffledCorrect=indices.indexOf(q.correct);
+    q._shuffled=true;
+  }
+  const opts=q._shuffledOptions;
   const list=document.getElementById('opts-list');list.innerHTML='';
   ['A','B','C','D'].forEach((ltr,i)=>{
-    if(i>=q.options.length)return;
+    if(i>=opts.length)return;
     const li=document.createElement('li');
-    li.innerHTML='<button class="opt-btn" data-idx="'+i+'"><span class="opt-letter">'+ltr+'</span><span class="opt-content"><span class="opt-en">'+q.options[i].en+'</span><span class="opt-it">'+q.options[i].it+'</span></span></button>';
+    li.innerHTML='<button class="opt-btn" data-idx="'+i+'"><span class="opt-letter">'+ltr+'</span><span class="opt-content"><span class="opt-en">'+opts[i].en+'</span><span class="opt-it">'+opts[i].it+'</span></span></button>';
     list.appendChild(li);
   });
   list.querySelectorAll('.opt-btn').forEach(b=>b.addEventListener('click',()=>selectAnswer(parseInt(b.dataset.idx))));
@@ -274,8 +283,9 @@ function selectAnswer(idx){
   const q=quiz[current];
   document.querySelectorAll('.opt-btn').forEach(b=>b.disabled=true);
   const btns=document.querySelectorAll('.opt-btn');
-  const isRight=idx===q.correct;
-  btns[q.correct].classList.add('correct');
+  const correctIdx=q._shuffledCorrect;
+  const isRight=idx===correctIdx;
+  btns[correctIdx].classList.add('correct');
   if(!isRight)btns[idx].classList.add('wrong');
   if(isRight)score++;
   userAnswers.push({qIdx:current,chosen:idx,correct:isRight});
@@ -309,7 +319,7 @@ function buildReview(){
   while(sec.children.length>1)sec.removeChild(sec.lastChild);
   userAnswers.forEach(a=>{
     const q=quiz[a.qIdx];
-    const chosen=q.options[a.chosen],correct=q.options[q.correct];
+    const chosen=q._shuffledOptions[a.chosen],correct=q._shuffledOptions[q._shuffledCorrect];
     const div=document.createElement('div');div.className='review-item '+(a.correct?'ok':'ko');
     div.innerHTML='<div class="review-q">'+q.en+'</div><div class="review-q-it">'+q.it+'</div><div class="review-ans">'+(a.correct?'<span class="ca">\u2705 '+chosen.en+'</span>':'<span class="wa">\u274C '+chosen.en+'</span><br><span class="ca">\u2705 '+correct.en+'</span>')+'</div>';
     sec.appendChild(div);
